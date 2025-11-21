@@ -7,10 +7,15 @@ const rl = readline.createInterface({
 // TODO: Uncomment the code below to pass the first stage
 function promptUser() {
   rl.question("$ ", (answer) => {
-    const cmd = answer;
+    const parts = answer.trim ().split(/\s+/);
+    const cmd = parts[0];
+    const args = parts.slice(1);
 if (cmd === "exit") {
       rl.close();
       process.exit(0);
+    }else if (cmd === "echo") {
+        console.log(args.join(" "));
+        promptUser();
     }
     else{
         console.log(`${cmd}: command not found`);
