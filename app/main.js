@@ -28,62 +28,47 @@ if (cmd === "exit") {
         console.log(args.join(" "));
         promptUser();
     }else if (cmd === "type") {
-        if (args.length === 0) {
-            console.log("type: missing operand");
-        } else {
-            args.forEach((arg) => {
-                if (builtins.includes(arg)) {
-                    console.log(`${arg} is a shell builtin`);
-                }
-                else {
-                    console.log(`${arg}: not found`);
-                }
-                 args.forEach((arg) => {
-
-        if (builtins.includes(arg)) {
-          console.log(`${arg} is a shell builtin`);
-          return;
-        }
-
-        const PATH = process.env.PATH || "";
-        const parts = PATH.split(":");
-        let found = false;
-
-        for (let dir of parts) {
-          if (!dir) continue; 
-          const candidate = path.join(dir, arg);
-
-
-
-          
-          if (!fs.existsSync(candidate)) continue;
-
-          
-
-          
-          try {
-            fs.accessSync(candidate, fs.constants.X_OK);
-            console.log(`${arg} is ${candidate}`);
-            found = true;
-            break;
-          } catch (err) {
-            
+      if (args.length === 0) {
+        console.log("type: missing operand");
+      } else {
+        for (const arg of args) {
+         
+          if (builtins.includes(arg)) {
+            console.log(`${arg} is a shell builtin`);
             continue;
           }
-        }
 
-        if (!found) {
-          console.log(`${arg}: not found`);
-        }
-      });
+          
+          const PATH = process.env.PATH || "";
+          const pathDirs = PATH.split(":");
+          let found = false;
 
-            });
+          for (const dir of pathDirs) {
+            if (!dir) continue;
+            const candidate = path.join(dir, arg);
+
+            if (!fs.existsSync(candidate)) continue;
+
+            try {
+              fs.accessSync(candidate, fs.constants.X_OK);
+              console.log(`${arg} is ${candidate}`);
+              found = true;
+              break; 
+            } catch (err) {
+              
+              continue;
+            }
           }
-          promptUser();
+
+          if (!found) {
+            console.log(`${arg}: not found`);
           }
-    else{
-        console.log(`${cmd}: command not found`);
-        promptUser();
+        } 
+      } 
+      promptUser();
+    } else {
+      console.log(`${cmd}: command not found`);
+      promptUser();
     }
   });
 }
