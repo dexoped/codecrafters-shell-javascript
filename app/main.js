@@ -7,5 +7,7 @@ const rl = readline.createInterface({
 
 // TODO: Uncomment the code below to pass the first stage
  rl.question("$ ", (answer) => {
+  questionHandler(answer);
+  console.log('${answer}: command not found');
    rl.close();
  });
