@@ -6,7 +6,11 @@ const rl = readline.createInterface({
 });
 
 // TODO: Uncomment the code below to pass the first stage
- rl.question("$ ", (answer) => {
-   console.log(`${answer}: command not found`);
-   rl.close();
- });
+function promptUser() {
+  rl.question("$ ", (answer) => {
+    const cmd = answer.trim();
+    console.log(`${cmd}: command not found`);
+    promptUser();
+  });
+}
+promptUser();
