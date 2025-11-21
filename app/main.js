@@ -8,6 +8,7 @@ const rl = readline.createInterface({
 const builtins = ["exit", "echo", "type"];
 // TODO: Uncomment the code below to pass the first stage
 function promptUser() {
+  process.stdout.write("$ ");
   rl.question("$ ", (answer) => {
     const parts = answer.trim ().split(/\s+/);
     const cmd = parts[0];
