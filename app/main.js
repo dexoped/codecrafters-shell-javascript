@@ -36,7 +36,9 @@ if (cmd === "exit") {
                 else {
                     console.log(`${arg}: not found`);
                 }
-            })}
+            });
+          }
+          promptUser();
           }
     else{
         console.log(`${cmd}: command not found`);
