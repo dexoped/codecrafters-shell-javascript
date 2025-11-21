@@ -12,6 +12,12 @@ function promptUser() {
     const parts = answer.trim ().split(/\s+/);
     const cmd = parts[0];
     const args = parts.slice(1);
+
+    if (!cmd) {
+      
+      return promptUser() ;
+    }
+
 if (cmd === "exit") {
       rl.close();
       process.exit(0);
