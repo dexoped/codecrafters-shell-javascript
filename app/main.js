@@ -90,7 +90,7 @@ if (cmd === "exit") {
     } else {
       const exePath = findExecutable(cmd);
       if (exePath) {
-        const child = spawn(exePath, args, { stdio: "inherit" });
+        const child = spawn(exePath, args, { stdio: "inherit", argv0: cmd });
 
         child.on("exit", (code , signal) => {
           promptUser();
