@@ -9,6 +9,8 @@ const rl = readline.createInterface({
 function promptUser() {
   rl.question("$ ", (answer) => {
     const cmd = answer.trim();
+     if (cmd === "exit 0 ") process.exit(0);
+    
     console.log(`${cmd}: command not found`);
     process.exit(0);
   });
