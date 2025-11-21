@@ -9,10 +9,15 @@ const rl = readline.createInterface({
 function promptUser() {
   rl.question("$ ", (answer) => {
     const cmd = answer;
-    if (cmd === "exit 0 ") rl.close();
     console.log(`${cmd}: command not found`);
     promptUser();
 
   });
 }
 promptUser();
+
+rl.on("SIGINT", () => {
+  console.log("\nExiting");
+  rl.close();
+  process.exit(0);
+});
