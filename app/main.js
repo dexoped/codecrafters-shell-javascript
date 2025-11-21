@@ -12,7 +12,7 @@ function promptUser() {
     if (cmd === "exit 0 ") rl.close();
     console.log(`${cmd}: command not found`);
     promptUser();
-process.exit(0);
+
   });
 }
 promptUser();
