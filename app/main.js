@@ -2,6 +2,8 @@ const readline = require("readline");
 const fs = require("fs");
 const path = require("path");
 
+const { spawn } = require("child_process");
+
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
@@ -9,6 +11,25 @@ const rl = readline.createInterface({
 
 const builtins = ["exit", "echo", "type"];
 // TODO: Uncomment the code below to pass the first stage
+function findExecutable(cmdName) {
+  const PATH = process.env.PATH || "";
+  const pathDirs = PATH.split(":");
+  for (const dir of pathDirs) {
+    if (!dir) continue;
+    const candidate = path.join(dir, cmdName);
+    if (!fs.existsSync(candidate)) continue;
+    try {
+      fs.accessSync(candidate, fs.constants.X_OK);
+      return candidate; 
+    } catch (err) {
+      
+      continue;
+    }
+  }
+  return null; 
+}
+
+
 function promptUser() {
   process.stdout.write("$ ");
   rl.question("$ ", (answer) => {
@@ -67,8 +88,23 @@ if (cmd === "exit") {
       } 
       promptUser();
     } else {
+      const exePath = findExecutable(cmd);
+      if (exePath) {
+        const child = spawn(exePath, args, { stdio: "inherit" });
+
+        child.on("exit", (code , signal) => {
+          promptUser();
+        });
+
+        child.on("error", (err) => {
+          console.log(`${cmd}: ${err.message}`);
+          promptUser();
+        });
+        
+      }else {
       console.log(`${cmd}: command not found`);
       promptUser();
+      }
     }
   });
 }
