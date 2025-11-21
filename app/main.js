@@ -10,7 +10,6 @@ function promptUser() {
   rl.question("$ ", (answer) => {
     const cmd = answer;
     console.log(`${cmd}: command not found`);
-    promptUser();
 
   });
 }
