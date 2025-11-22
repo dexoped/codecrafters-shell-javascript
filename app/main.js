@@ -51,15 +51,14 @@ if (cmd === "exit") {
     }else if (cmd === "pwd") {
         console.log(process.cwd());
         promptUser();
-    }else if (cmd === "cd") {
-        const dir = args[0] || process.env.HOME;
-        try {
-          process.chdir(dir);
-        } catch (err) {
-          console.log(`cd: ${err.message}`);
-        }
+    } else if (cmd === "cd") {
+    
+      const target = args[0];
+      if (!target) {
+    
         promptUser();
-    }else if (cmd === "type") {
+        return;
+      }else if (cmd === "type") {
       if (args.length === 0) {
         console.log("type: missing operand");
       } else {
