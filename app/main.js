@@ -52,13 +52,42 @@ if (cmd === "exit") {
         console.log(process.cwd());
         promptUser();
     } else if (cmd === "cd") {
-    
+      // 🆕 added: handle absolute paths only (this stage)
       const target = args[0];
       if (!target) {
-    
+        // no operand -> just re-prompt (spec doesn't require behavior)
         promptUser();
         return;
-      }else if (cmd === "type") {
+      }
+
+      if (target.startsWith("/")) {
+        // check existence and directory-ness
+        try {
+          const stat = fs.statSync(target);
+          if (!stat.isDirectory()) {
+            console.log(`cd: ${target}: No such file or directory`);
+            promptUser();
+            return;
+          }
+        } catch (err) {
+          // stat failed -> doesn't exist
+          console.log(`cd: ${target}: No such file or directory`);
+          promptUser();
+          return;
+        }
+
+        // try to change directory (may throw on permission error)
+        try {
+          process.chdir(target);
+        } catch (err) {
+          console.log(`cd: ${target}: No such file or directory`);
+        }
+        promptUser();
+      } else {
+        // For this stage only absolute paths required — ignore others
+        promptUser();
+      }
+    } else if (cmd === "type") {
       if (args.length === 0) {
         console.log("type: missing operand");
       } else {
@@ -116,6 +145,6 @@ if (cmd === "exit") {
       promptUser();
       }
     }
-  }});
+  });
 }
 promptUser();
