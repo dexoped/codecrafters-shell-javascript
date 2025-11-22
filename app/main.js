@@ -9,7 +9,7 @@ const rl = readline.createInterface({
   output: process.stdout,
 });
 
-const builtins = ["exit", "echo", "type", "pwd"];
+const builtins = ["exit", "echo", "type", "pwd","cd"];
 // TODO: Uncomment the code below to pass the first stage
 function findExecutable(cmdName) {
   const PATH = process.env.PATH || "";
@@ -50,6 +50,14 @@ if (cmd === "exit") {
         promptUser();
     }else if (cmd === "pwd") {
         console.log(process.cwd());
+        promptUser();
+    }else if (cmd === "cd") {
+        const dir = args[0] || process.env.HOME;
+        try {
+          process.chdir(dir);
+        } catch (err) {
+          console.log(`cd: ${err.message}`);
+        }
         promptUser();
     }else if (cmd === "type") {
       if (args.length === 0) {
