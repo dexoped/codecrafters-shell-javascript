@@ -116,6 +116,6 @@ if (cmd === "exit") {
       promptUser();
       }
     }
-  });
+  }});
 }
 promptUser();
