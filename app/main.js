@@ -33,45 +33,39 @@ function findExecutable(cmdName) {
 function splitArgs(line) {
   const tokens = [];
   let cur = "";
-  let inSingle = false;
+  let i = 0;
+  const n = line.length;
 
-  for (let i = 0; i < line.length; i++) {
+  while (i < n) {
     const ch = line[i];
 
-    if (inSingle) {
-      if (ch === "'") {
-        // end single quote
-        inSingle = false;
-        // don't push yet — allow concatenation with next fragment
-      } else {
-        // take literally
-        cur += ch;
+    if (ch === "'") {
+      // Enter single-quote mode: take characters literally until next single quote.
+      i++; // skip opening quote
+      while (i < n && line[i] !== "'") {
+        cur += line[i];
+        i++;
       }
+      if (i < n && line[i] === "'") {
+        i++; // skip closing quote
+      }
+      // don't push token yet — allow concatenation with next fragment
+    } else if (/\s/.test(ch)) {
+      // whitespace outside quotes — token boundary (collapse multiple whitespace)
+      if (cur.length > 0) {
+        tokens.push(cur);
+        cur = "";
+      }
+      // skip all contiguous whitespace
+      while (i < n && /\s/.test(line[i])) i++;
     } else {
-      if (ch === "'") {
-        // begin single quote
-        inSingle = true;
-        // beginning quote adjacent to token -> continue appending to current token
-      } else if (/\s/.test(ch)) {
-        // whitespace outside quotes: token delimiter
-        if (cur.length > 0) {
-          tokens.push(cur);
-          cur = "";
-        }
-        // else skip multiple spaces (collapse)
-      } else {
-        // normal character outside quotes
-        cur += ch;
-      }
+      // normal character outside quotes
+      cur += ch;
+      i++;
     }
   }
 
-  // If input ended while still in a single quote, treat it as closed
-  // (we already appended all literal chars we saw)
-  if (cur.length > 0) {
-    tokens.push(cur);
-  }
-
+  if (cur.length > 0) tokens.push(cur);
   return tokens;
 }
 
