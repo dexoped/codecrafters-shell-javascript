@@ -61,7 +61,6 @@ if (cmd === "exit") {
       }
  let resolvedPath;
       if (target === "~") {
-       // change to home directory
         const HOME = process.env.HOME;
         if (!HOME) {
           console.log(`cd: ${target}: No such file or directory`);
@@ -70,26 +69,24 @@ if (cmd === "exit") {
         }
         resolvedPath = HOME;
       } else if (target.startsWith("~/")) {
-        
         const HOME = process.env.HOME;
         if (!HOME) {
           console.log(`cd: ${target}: No such file or directory`);
           promptUser();
           return;
         }
-       
+        // join HOME with remainder after "~/"
         resolvedPath = path.join(HOME, target.slice(2));
-      }
-      else if (target.startsWith("/")) {
-     // absolute path
+      } else if (target.startsWith("/")) {
+        // absolute path: use as-is
         resolvedPath = target;
-        
-        
-       
       } else {
+        // relative path: resolve against current working directory
         resolvedPath = path.resolve(process.cwd(), target);
+      }
 
-        try {
+      // Check existence and directory-ness
+      try {
         const stat = fs.statSync(resolvedPath);
         if (!stat.isDirectory()) {
           console.log(`cd: ${target}: No such file or directory`);
@@ -97,21 +94,20 @@ if (cmd === "exit") {
           return;
         }
       } catch (err) {
-      
+        // stat failed -> path doesn't exist
         console.log(`cd: ${target}: No such file or directory`);
         promptUser();
         return;
       }
 
-      
+      // Try to change directory (may still throw e.g., permissions)
       try {
         process.chdir(resolvedPath);
       } catch (err) {
-        
+        // Report failure as "No such file or directory" per spec
         console.log(`cd: ${target}: No such file or directory`);
       }
-        promptUser();
-      }
+      promptUser();
     } else if (cmd === "type") {
       if (args.length === 0) {
         console.log("type: missing operand");
