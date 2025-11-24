@@ -29,7 +29,6 @@ function findExecutable(cmdName) {
   return null; 
 }
 
-
 function splitArgs(line) {
   const tokens = [];
   let cur = "";
@@ -40,7 +39,7 @@ function splitArgs(line) {
     const ch = line[i];
 
     if (ch === "'") {
-      // Enter single-quote mode: take characters literally until next single quote.
+      // Enter single-quote mode: copy characters literally until next single quote
       i++; // skip opening quote
       while (i < n && line[i] !== "'") {
         cur += line[i];
@@ -49,17 +48,15 @@ function splitArgs(line) {
       if (i < n && line[i] === "'") {
         i++; // skip closing quote
       }
-      // don't push token yet — allow concatenation with next fragment
+      // continue building current token (do not push yet)
     } else if (/\s/.test(ch)) {
-      // whitespace outside quotes — token boundary (collapse multiple whitespace)
+      // whitespace outside quotes => token boundary (collapse multiple)
       if (cur.length > 0) {
         tokens.push(cur);
         cur = "";
       }
-      // skip all contiguous whitespace
       while (i < n && /\s/.test(line[i])) i++;
     } else {
-      // normal character outside quotes
       cur += ch;
       i++;
     }
