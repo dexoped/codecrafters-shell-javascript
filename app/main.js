@@ -84,7 +84,29 @@ if (cmd === "exit") {
         }
         promptUser();
       } else {
-        // For this stage only absolute paths required — ignore others
+        resolvedPath = path.resolve(process.cwd(), target);
+
+        try {
+        const stat = fs.statSync(resolvedPath);
+        if (!stat.isDirectory()) {
+          console.log(`cd: ${target}: No such file or directory`);
+          promptUser();
+          return;
+        }
+      } catch (err) {
+      
+        console.log(`cd: ${target}: No such file or directory`);
+        promptUser();
+        return;
+      }
+
+      
+      try {
+        process.chdir(resolvedPath);
+      } catch (err) {
+        
+        console.log(`cd: ${target}: No such file or directory`);
+      }
         promptUser();
       }
     } else if (cmd === "type") {
