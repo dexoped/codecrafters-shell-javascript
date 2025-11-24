@@ -30,6 +30,51 @@ function findExecutable(cmdName) {
 }
 
 
+function splitArgs(line) {
+  const tokens = [];
+  let cur = "";
+  let inSingle = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+
+    if (inSingle) {
+      if (ch === "'") {
+        // end single quote
+        inSingle = false;
+        // don't push yet — allow concatenation with next fragment
+      } else {
+        // take literally
+        cur += ch;
+      }
+    } else {
+      if (ch === "'") {
+        // begin single quote
+        inSingle = true;
+        // beginning quote adjacent to token -> continue appending to current token
+      } else if (/\s/.test(ch)) {
+        // whitespace outside quotes: token delimiter
+        if (cur.length > 0) {
+          tokens.push(cur);
+          cur = "";
+        }
+        // else skip multiple spaces (collapse)
+      } else {
+        // normal character outside quotes
+        cur += ch;
+      }
+    }
+  }
+
+  // If input ended while still in a single quote, treat it as closed
+  // (we already appended all literal chars we saw)
+  if (cur.length > 0) {
+    tokens.push(cur);
+  }
+
+  return tokens;
+}
+
 function promptUser() {
   process.stdout.write("$ ");
   rl.question("$ ", (answer) => {
