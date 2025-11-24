@@ -59,9 +59,34 @@ if (cmd === "exit") {
         promptUser();
         return;
       }
-
-      if (target.startsWith("/")) {
-        // check existence and directory-ness
+ let resolvedPath;
+      if (target === "~") {
+       // change to home directory
+        const HOME = process.env.HOME;
+        if (!HOME) {
+          console.log(`cd: ${target}: No such file or directory`);
+          promptUser();
+          return;
+        }
+        resolvedPath = HOME;
+      } else if (target.startsWith("~/")) {
+        
+        const HOME = process.env.HOME;
+        if (!HOME) {
+          console.log(`cd: ${target}: No such file or directory`);
+          promptUser();
+          return;
+        }
+       
+        resolvedPath = path.join(HOME, target.slice(2));
+      }
+      else if (target.startsWith("/")) {
+     // absolute path
+        resolvedPath = target;
+      }
+      else{
+         resolvedPath = path.resolve(process.cwd(), target);
+      }
         try {
           const stat = fs.statSync(target);
           if (!stat.isDirectory()) {
