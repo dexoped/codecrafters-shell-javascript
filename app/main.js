@@ -45,9 +45,8 @@ function splitArgs(line) {
         cur += line[i];
         i++;
       }
-      if (i < n && line[i] === "'") {
-        i++; // skip closing quote
-      }
+      // skip closing quote if present
+      if (i < n && line[i] === "'") i++;
       // continue building current token (do not push yet)
     } else if (/\s/.test(ch)) {
       // whitespace outside quotes => token boundary (collapse multiple)
