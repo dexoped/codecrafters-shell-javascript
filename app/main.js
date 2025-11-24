@@ -83,31 +83,9 @@ if (cmd === "exit") {
       else if (target.startsWith("/")) {
      // absolute path
         resolvedPath = target;
-      }
-      else{
-         resolvedPath = path.resolve(process.cwd(), target);
-      }
-        try {
-          const stat = fs.statSync(target);
-          if (!stat.isDirectory()) {
-            console.log(`cd: ${target}: No such file or directory`);
-            promptUser();
-            return;
-          }
-        } catch (err) {
-          // stat failed -> doesn't exist
-          console.log(`cd: ${target}: No such file or directory`);
-          promptUser();
-          return;
-        }
-
-        // try to change directory (may throw on permission error)
-        try {
-          process.chdir(target);
-        } catch (err) {
-          console.log(`cd: ${target}: No such file or directory`);
-        }
-        promptUser();
+        
+        
+       
       } else {
         resolvedPath = path.resolve(process.cwd(), target);
 
