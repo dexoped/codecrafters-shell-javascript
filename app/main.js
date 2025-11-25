@@ -37,7 +37,7 @@ function splitArgs(line) {
     const ch = line[i];
 
     if (ch === "'") {
-      // Enter single-quote mode: copy characters literally until next single quote
+      // Single-quote mode: copy literally until next '
       i++; // skip opening quote
       while (i < n && line[i] !== "'") {
         cur += line[i];
@@ -45,9 +45,19 @@ function splitArgs(line) {
       }
       // skip closing quote if present
       if (i < n && line[i] === "'") i++;
-      // continue building current token (do not push yet)
+      // keep building current token
+    } else if (ch === '"') {
+      // Double-quote mode: copy literally until next "
+      i++; // skip opening quote
+      while (i < n && line[i] !== '"') {
+        cur += line[i];
+        i++;
+      }
+      // skip closing quote if present
+      if (i < n && line[i] === '"') i++;
+      // keep building current token
     } else if (/\s/.test(ch)) {
-      // whitespace outside quotes => token boundary (collapse multiple)
+      // Whitespace outside quotes: token boundary (collapse multiple)
       if (cur.length > 0) {
         tokens.push(cur);
         cur = "";
