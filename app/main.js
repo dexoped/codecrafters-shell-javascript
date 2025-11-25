@@ -1,7 +1,6 @@
 const readline = require("readline");
 const fs = require("fs");
 const path = require("path");
-
 const { spawn } = require("child_process");
 
 const rl = readline.createInterface({
@@ -9,8 +8,8 @@ const rl = readline.createInterface({
   output: process.stdout,
 });
 
-const builtins = ["exit", "echo", "type", "pwd","cd"];
-// TODO: Uncomment the code below to pass the first stage
+const builtins = ["exit", "echo", "type", "pwd", "cd"];
+
 function findExecutable(cmdName) {
   const PATH = process.env.PATH || "";
   const pathDirs = PATH.split(":");
@@ -20,13 +19,12 @@ function findExecutable(cmdName) {
     if (!fs.existsSync(candidate)) continue;
     try {
       fs.accessSync(candidate, fs.constants.X_OK);
-      return candidate; 
+      return candidate;
     } catch (err) {
-      
       continue;
     }
   }
-  return null; 
+  return null;
 }
 
 function splitArgs(line) {
@@ -66,35 +64,32 @@ function splitArgs(line) {
 }
 
 function promptUser() {
-  process.stdout.write("$ ");
   rl.question("$ ", (answer) => {
-    const parts = answer.trim ().split(/\s+/);
+    const parts = splitArgs(answer);
     const cmd = parts[0];
     const args = parts.slice(1);
 
     if (!cmd) {
-      
-      return promptUser() ;
+      return promptUser();
     }
 
-if (cmd === "exit") {
+    if (cmd === "exit") {
       rl.close();
       process.exit(0);
-    }else if (cmd === "echo") {
-        console.log(args.join(" "));
-        promptUser();
-    }else if (cmd === "pwd") {
-        console.log(process.cwd());
-        promptUser();
+    } else if (cmd === "echo") {
+      console.log(args.join(" "));
+      promptUser();
+    } else if (cmd === "pwd") {
+      console.log(process.cwd());
+      promptUser();
     } else if (cmd === "cd") {
-      // 🆕 added: handle absolute paths only (this stage)
       const target = args[0];
       if (!target) {
-        // no operand -> just re-prompt (spec doesn't require behavior)
         promptUser();
         return;
       }
- let resolvedPath;
+
+      let resolvedPath;
       if (target === "~") {
         const HOME = process.env.HOME;
         if (!HOME) {
@@ -110,17 +105,13 @@ if (cmd === "exit") {
           promptUser();
           return;
         }
-        // join HOME with remainder after "~/"
         resolvedPath = path.join(HOME, target.slice(2));
       } else if (target.startsWith("/")) {
-        // absolute path: use as-is
         resolvedPath = target;
       } else {
-        // relative path: resolve against current working directory
         resolvedPath = path.resolve(process.cwd(), target);
       }
 
-      // Check existence and directory-ness
       try {
         const stat = fs.statSync(resolvedPath);
         if (!stat.isDirectory()) {
@@ -129,17 +120,14 @@ if (cmd === "exit") {
           return;
         }
       } catch (err) {
-        // stat failed -> path doesn't exist
         console.log(`cd: ${target}: No such file or directory`);
         promptUser();
         return;
       }
 
-      // Try to change directory (may still throw e.g., permissions)
       try {
         process.chdir(resolvedPath);
       } catch (err) {
-        // Report failure as "No such file or directory" per spec
         console.log(`cd: ${target}: No such file or directory`);
       }
       promptUser();
@@ -148,13 +136,11 @@ if (cmd === "exit") {
         console.log("type: missing operand");
       } else {
         for (const arg of args) {
-         
           if (builtins.includes(arg)) {
             console.log(`${arg} is a shell builtin`);
             continue;
           }
 
-          
           const PATH = process.env.PATH || "";
           const pathDirs = PATH.split(":");
           let found = false;
@@ -169,9 +155,8 @@ if (cmd === "exit") {
               fs.accessSync(candidate, fs.constants.X_OK);
               console.log(`${arg} is ${candidate}`);
               found = true;
-              break; 
+              break;
             } catch (err) {
-              
               continue;
             }
           }
@@ -179,15 +164,15 @@ if (cmd === "exit") {
           if (!found) {
             console.log(`${arg}: not found`);
           }
-        } 
-      } 
+        }
+      }
       promptUser();
     } else {
       const exePath = findExecutable(cmd);
       if (exePath) {
         const child = spawn(exePath, args, { stdio: "inherit", argv0: cmd });
 
-        child.on("exit", (code , signal) => {
+        child.on("exit", (code, signal) => {
           promptUser();
         });
 
@@ -195,12 +180,12 @@ if (cmd === "exit") {
           console.log(`${cmd}: ${err.message}`);
           promptUser();
         });
-        
-      }else {
-      console.log(`${cmd}: command not found`);
-      promptUser();
+      } else {
+        console.log(`${cmd}: command not found`);
+        promptUser();
       }
     }
   });
 }
+
 promptUser();
