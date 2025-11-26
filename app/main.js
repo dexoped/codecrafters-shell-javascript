@@ -1,6 +1,7 @@
 const readline = require("readline");
 const fs = require("fs");
 const path = require("path");
+
 const { spawn } = require("child_process");
 
 const rl = readline.createInterface({
@@ -45,7 +46,7 @@ function splitArgs(line) {
       }
       // skip closing quote if present
       if (i < n && line[i] === "'") i++;
-      // keep building current token
+      // continue building current token
     } else if (ch === '"') {
       // Double-quote mode: copy literally until next "
       i++; // skip opening quote
@@ -55,7 +56,17 @@ function splitArgs(line) {
       }
       // skip closing quote if present
       if (i < n && line[i] === '"') i++;
-      // keep building current token
+      // continue building current token
+    } else if (ch === "\\") {
+      // Backslash outside quotes: escape next character (take it literally)
+      // Remove the backslash and append the next character (if any) literally.
+      if (i + 1 < n) {
+        cur += line[i + 1];
+        i += 2;
+      } else {
+        // backslash at end of line -> ignore it
+        i++;
+      }
     } else if (/\s/.test(ch)) {
       // Whitespace outside quotes: token boundary (collapse multiple)
       if (cur.length > 0) {
