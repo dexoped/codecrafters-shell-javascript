@@ -39,36 +39,57 @@ function splitArgs(line) {
 
     if (ch === "'") {
       // Single-quote mode: copy literally until next '
-      i++; // skip opening quote
+      i++; // skip opening '
       while (i < n && line[i] !== "'") {
         cur += line[i];
         i++;
       }
       // skip closing quote if present
       if (i < n && line[i] === "'") i++;
-      // continue building current token
+      // continue building current token (do not push yet)
     } else if (ch === '"') {
-      // Double-quote mode: copy literally until next "
-      i++; // skip opening quote
+      // Double-quote mode: copy until next "
+      // Inside double quotes: backslash only escapes " and \ for this stage.
+      i++; // skip opening "
       while (i < n && line[i] !== '"') {
-        cur += line[i];
-        i++;
+        if (line[i] === "\\") {
+          // inside double quotes: handle only \" and \\ specially
+          if (i + 1 < n) {
+            const next = line[i + 1];
+            if (next === '"' || next === "\\") {
+              // consume backslash and append the escaped char
+              cur += next;
+              i += 2;
+            } else {
+              // backslash is literal inside double quotes for other chars:
+              // keep the backslash as a literal character and advance by 1
+              cur += "\\";
+              i++;
+            }
+          } else {
+            // trailing backslash at end of input inside quotes -> keep it
+            cur += "\\";
+            i++;
+          }
+        } else {
+          cur += line[i];
+          i++;
+        }
       }
-      // skip closing quote if present
+      // skip closing " if present
       if (i < n && line[i] === '"') i++;
       // continue building current token
     } else if (ch === "\\") {
-      // Backslash outside quotes: escape next character (take it literally)
-      // Remove the backslash and append the next character (if any) literally.
+      // Backslash outside quotes: escape next character (remove backslash)
       if (i + 1 < n) {
         cur += line[i + 1];
         i += 2;
       } else {
-        // backslash at end of line -> ignore it
+        // trailing backslash -> ignore it
         i++;
       }
     } else if (/\s/.test(ch)) {
-      // Whitespace outside quotes: token boundary (collapse multiple)
+      // Whitespace outside quotes => token boundary (collapse multiple)
       if (cur.length > 0) {
         tokens.push(cur);
         cur = "";
