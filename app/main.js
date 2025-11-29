@@ -91,18 +91,22 @@ function splitArgs(line) {
 }
 
 /**
- * Scan tokens for output redirection > or N> where N is a fd number.
- * Returns an object { args, outFile, outFdNum } where:
- * - args: tokens with redirection removed
- * - outFile: path string or null
- * - outFdNum: the numeric fd targeted (1 for stdout) or null
+ * Scan tokens for redirections like:
+ *   > file        (means 1> file)
+ *   1> file
+ *   2> file
+ *   >file, 1>file, 2>file
  *
- * For this stage we only act on fd 1 (or unspecified => default to 1).
+ * Returns { args, redirs } where:
+ *  - args: tokens with redirection tokens removed
+ *  - redirs: object mapping fd number -> filename (e.g. { "1": "/tmp/out", "2": "/tmp/err" })
+ *
+ * Only fd 0..2 are meaningful for spawn's stdio. We store any numeric fd encountered,
+ * but during spawn we only use 1 (stdout) and 2 (stderr).
  */
 function extractRedirection(tokens) {
   const args = [];
-  let outFile = null;
-  let outFdNum = null;
+  const redirs = {}; // fdNum (number) -> filename
 
   let i = 0;
   while (i < tokens.length) {
@@ -111,19 +115,15 @@ function extractRedirection(tokens) {
     // Case: token exactly ">" or "N>"
     const m1 = t.match(/^(\d*)>$/);
     if (m1) {
-      const fdPart = m1[1]; // "" or "1"
+      const fdPart = m1[1]; // "" or "1" or "2"
       const fdNum = fdPart === "" ? 1 : parseInt(fdPart, 10);
       const next = tokens[i + 1];
       if (next) {
-        // consume both tokens
-        if (fdNum === 1) {
-          outFile = next;
-          outFdNum = 1;
-        }
+        redirs[fdNum] = next;
         i += 2;
         continue;
       } else {
-        // no filename provided; ignore this redirection token
+        // no filename provided; ignore this token
         i++;
         continue;
       }
@@ -135,10 +135,7 @@ function extractRedirection(tokens) {
       const fdPart = m2[1];
       const fdNum = fdPart === "" ? 1 : parseInt(fdPart, 10);
       const filename = m2[2];
-      if (fdNum === 1) {
-        outFile = filename;
-        outFdNum = 1;
-      }
+      redirs[fdNum] = filename;
       i++;
       continue;
     }
@@ -148,13 +145,13 @@ function extractRedirection(tokens) {
     i++;
   }
 
-  return { args, outFile, outFdNum };
+  return { args, redirs };
 }
 
 function promptUser() {
   rl.question("$ ", (answer) => {
     const parts = splitArgs(answer);
-    const { args: cleanedParts, outFile, outFdNum } = extractRedirection(parts);
+    const { args: cleanedParts, redirs } = extractRedirection(parts);
     const partsFinal = cleanedParts;
     const cmd = partsFinal[0];
     const args = partsFinal.slice(1);
@@ -163,14 +160,12 @@ function promptUser() {
       return promptUser();
     }
 
-    // Helper to write a builtin's output to a file (synchronously) if needed.
     function writeToFileAndClose(filename, data) {
       try {
         const fd = fs.openSync(filename, "w");
         fs.writeSync(fd, data);
         fs.closeSync(fd);
       } catch (err) {
-        // If we can't write to the file, mimic shell behavior by printing an error.
         console.log(`redirect: ${err.message}`);
       }
     }
@@ -180,8 +175,8 @@ function promptUser() {
       process.exit(0);
     } else if (cmd === "echo") {
       const out = args.join(" ") + "\n";
-      if (outFile && outFdNum === 1) {
-        writeToFileAndClose(outFile, out);
+      if (redirs[1]) {
+        writeToFileAndClose(redirs[1], out);
         promptUser();
       } else {
         process.stdout.write(out);
@@ -189,8 +184,8 @@ function promptUser() {
       }
     } else if (cmd === "pwd") {
       const out = process.cwd() + "\n";
-      if (outFile && outFdNum === 1) {
-        writeToFileAndClose(outFile, out);
+      if (redirs[1]) {
+        writeToFileAndClose(redirs[1], out);
         promptUser();
       } else {
         console.log(process.cwd());
@@ -285,53 +280,60 @@ function promptUser() {
       // external command
       const exePath = findExecutable(cmd);
       if (exePath) {
-        if (outFile && outFdNum === 1) {
-          // redirect stdout to file (overwrite)
-          let outFd;
-          try {
-            outFd = fs.openSync(outFile, "w");
-          } catch (err) {
-            console.log(`${cmd}: ${err.message}`);
-            promptUser();
-            return;
+        // Prepare file descriptors for redirection (if any)
+        let outFd = null;
+        let errFd = null;
+        try {
+          if (redirs[1]) {
+            outFd = fs.openSync(redirs[1], "w");
           }
-
-          const child = spawn(exePath, args, {
-            stdio: ["inherit", outFd, "inherit"],
-            argv0: cmd,
-          });
-
-          child.on("exit", (code, signal) => {
-            try {
-              fs.closeSync(outFd);
-            } catch (err) {
-              // ignore
-            }
-            promptUser();
-          });
-
-          child.on("error", (err) => {
-            try {
-              fs.closeSync(outFd);
-            } catch (e) {
-              // ignore
-            }
-            console.log(`${cmd}: ${err.message}`);
-            promptUser();
-          });
-        } else {
-          // no redirection -> normal spawn with inherited stdio
-          const child = spawn(exePath, args, { stdio: "inherit", argv0: cmd });
-
-          child.on("exit", (code, signal) => {
-            promptUser();
-          });
-
-          child.on("error", (err) => {
-            console.log(`${cmd}: ${err.message}`);
-            promptUser();
-          });
+          if (redirs[2]) {
+            errFd = fs.openSync(redirs[2], "w");
+          }
+        } catch (err) {
+          // Could not open file for writing
+          console.log(`${cmd}: ${err.message}`);
+          // Close any opened fds before returning
+          try {
+            if (outFd !== null) fs.closeSync(outFd);
+          } catch (e) {}
+          try {
+            if (errFd !== null) fs.closeSync(errFd);
+          } catch (e) {}
+          promptUser();
+          return;
         }
+
+        // Build stdio array: [ stdin, stdout, stderr ]
+        const stdio = [
+          "inherit",
+          outFd !== null ? outFd : "inherit",
+          errFd !== null ? errFd : "inherit",
+        ];
+
+        const child = spawn(exePath, args, { stdio, argv0: cmd });
+
+        child.on("exit", (code, signal) => {
+          // close fds if opened
+          try {
+            if (outFd !== null) fs.closeSync(outFd);
+          } catch (e) {}
+          try {
+            if (errFd !== null) fs.closeSync(errFd);
+          } catch (e) {}
+          promptUser();
+        });
+
+        child.on("error", (err) => {
+          try {
+            if (outFd !== null) fs.closeSync(outFd);
+          } catch (e) {}
+          try {
+            if (errFd !== null) fs.closeSync(errFd);
+          } catch (e) {}
+          console.log(`${cmd}: ${err.message}`);
+          promptUser();
+        });
       } else {
         console.log(`${cmd}: command not found`);
         promptUser();
